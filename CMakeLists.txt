@@ -1,10 +1,11 @@
 #
 # Copyright (c) 2014 -     Keith Ha (keith4ever@gmail.com)
 # All content herein is protected by U.S. copyright and other applicable intellectual property laws
-# and may not be copied without the expressive permission of AlcaCruz Inc., which reserves all rights.
-# Reuse of any of the content for any purpose without the permission of AlcaCruz Inc.
+# and may not be copied without the expressive permission of Keith Ha, who reserves all rights.
+# Reuse of any of the content for any purpose without the permission of Keith Ha
 # is strictly and expressively prohibited.
 #
+
 cmake_minimum_required(VERSION 3.1.0)
 project(meanfilter)
 
