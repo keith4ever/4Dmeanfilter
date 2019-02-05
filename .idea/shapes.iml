@@ -16,10 +16,10 @@
     <orderEntry type="module-library">
       <library name="Header Search Paths">
         <CLASSES>
-          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/729c0e31/729c0e31/Debug" />
-          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/729c0e31/729c0e31/MinSizeRel" />
-          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/729c0e31/729c0e31/RelWithDebInfo" />
-          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/729c0e31/729c0e31/Release" />
+          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/c8720734/c8720734/Debug" />
+          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/c8720734/c8720734/MinSizeRel" />
+          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/c8720734/c8720734/RelWithDebInfo" />
+          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/c8720734/c8720734/Release" />
           <root url="file:///usr/include" />
           <root url="file:///usr/lib/gcc/x86_64-linux-gnu/7/include" />
           <root url="file:///usr/lib/gcc/x86_64-linux-gnu/7/include-fixed" />
@@ -29,10 +29,10 @@
           <root url="file:///usr/local/include" />
         </CLASSES>
         <SOURCES>
-          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/729c0e31/729c0e31/Debug" />
-          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/729c0e31/729c0e31/MinSizeRel" />
-          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/729c0e31/729c0e31/RelWithDebInfo" />
-          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/729c0e31/729c0e31/Release" />
+          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/c8720734/c8720734/Debug" />
+          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/c8720734/c8720734/MinSizeRel" />
+          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/c8720734/c8720734/RelWithDebInfo" />
+          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/c8720734/c8720734/Release" />
           <root url="file:///usr/include" />
           <root url="file:///usr/lib/gcc/x86_64-linux-gnu/7/include" />
           <root url="file:///usr/lib/gcc/x86_64-linux-gnu/7/include-fixed" />

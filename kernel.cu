@@ -32,7 +32,7 @@ __global__ void initVars(float* expBuffer){
     d_expTensor = expBuffer;
 }
 
-__global__ void calcMeanfilterCUDA(float* inputTensor, float* outputTensor,
+__global__ void meanFilteredTensor(float* inputTensor, float* outputTensor,
                                    int d1, int d2, int d3, int d4) {
     int idxX = threadIdx.x + blockIdx.x * blockDim.x;
     int idxY = threadIdx.y + blockIdx.y * blockDim.y;
@@ -236,7 +236,7 @@ cudaError_t Meanfilter4D::execute(float *inbuf, float *outbuf)
         dim3 grid((int) (m_d1dim + (threads.x - 1)) / threads.x,
                   (int) (m_d2dim + (threads.y - 1)) / threads.y);
 
-        calcMeanfilterCUDA <<< grid, threads >>> (m_pdInbuffer, m_pdOutbuffer, m_d1dim, m_d2dim, m_d3dim, m_d4dim);
+        meanFilteredTensor <<< grid, threads >>> (m_pdInbuffer, m_pdOutbuffer, m_d1dim, m_d2dim, m_d3dim, m_d4dim);
         cudaDeviceSynchronize();
 
         __cu(cudaMemcpy(outbuf, m_pdOutbuffer, sizeof(float) * m_d1dim * m_d2dim * m_d3dim * m_d4dim,
