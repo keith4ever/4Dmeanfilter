@@ -107,5 +107,7 @@ int main(int argc, char* argv[])
     pFilter->deinit();
 
     delete [] pInputBuffer;
+    delete [] pOutputBuffer;
+    
     return 0;
 }
