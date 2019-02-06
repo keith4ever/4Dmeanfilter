@@ -9,12 +9,21 @@
 #include "meanfilter.h"
 #include "kernel.h"
 #include <cuda_runtime.h>
+#include <cuda_device_runtime_api.h>
 
 using namespace std;
 
 Meanfilter4D* gpInstance;
 
 __device__ float* d_expTensor = NULL;
+
+__device__ inline void meanMemCpy(float *pdst, float *psrc, size_t size)
+{
+    size_t i = 0;
+    while(i++ < size){
+        *pdst++ = *psrc++;
+    }
+}
 
 __device__ inline int boundCheckCUDA(int idx, int dim){
     int ret = 3;
@@ -49,12 +58,15 @@ __global__ void meanFilteredTensor(float* inputTensor, float* outputTensor,
 
     // first copy into expanded memory
     float *pIn, *pExp, *pBase;
+    // copying raw source data into expanded (+2 for each dimension, to handle boundary data)
+    pIn = &inputTensor[idxX*d2*d3*d4 + idxY*d3 * d4];
+    pExp = &d_expTensor[(idxX+1)*ed2*ed3*ed4 + (idxY+1)*ed3*ed4 + ed4 + 1];
     for (k = 0; k < d3; k++) {
-        // copying raw source data into expanded (+2 for each dimension, to handle boundary data)
-        pIn = &inputTensor[idxX * d2 * d3 * d4 + idxY * d3 * d4 + k * d4];
-        pExp = &d_expTensor[(idxX + 1) * (d2+2) * (d3+2) * (d4+2)
-                             + (idxY + 1) * (d3+2) * (d4+2) + (k + 1) * (d4+2) + 1];
-        memcpy(pExp, pIn, sizeof(float) * d4);
+        /* pIn = &inputTensor[idxX*d2*d3*d4 + idxY*d3*d4 + k*d4];
+        pExp = &d_expTensor[(idxX+1)*ed2*ed3*ed4 + (idxY+1)*ed3*ed4 + (k+1)*ed4 + 1]; */
+        meanMemCpy(pExp, pIn, d4);  // customized memcpy, 'size' is divided by float size
+        pIn += d4;
+        pExp += ed4;
     }
 
     // wait until all mem copy is done
@@ -232,7 +244,7 @@ cudaError_t Meanfilter4D::execute(float *inbuf, float *outbuf)
         __cu(cudaMemcpy(m_pdInbuffer, inbuf, sizeof(float) * m_d1dim * m_d2dim * m_d3dim * m_d4dim,
                         cudaMemcpyHostToDevice));
 
-        dim3 threads(MIN(m_d1dim, 32), MIN(m_d2dim, 16));
+        dim3 threads(MIN(m_d1dim, 32), MIN(m_d2dim, 32));
         dim3 grid((int) (m_d1dim + (threads.x - 1)) / threads.x,
                   (int) (m_d2dim + (threads.y - 1)) / threads.y);
 

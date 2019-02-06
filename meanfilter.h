@@ -15,11 +15,12 @@
 #include <string.h>
 #include <unistd.h>
 #include <cuda.h>
+#include <stdlib.h>
 
-#define D1DIM   2
-#define D2DIM   2
-#define D3DIM   5
-#define D4DIM   2
+#define D1DIM   16
+#define D2DIM   16
+#define D3DIM   16
+#define D4DIM   16
 
 #define __PerfTimerStart__	auto startT = chrono::steady_clock::now();
 #define __PerfTimerEnd__	auto endT = chrono::steady_clock::now(); \
@@ -41,10 +42,14 @@ private:
     bool m_bCPUCompute;
 
 public:
+    bool m_bPrintOut;
+    int  m_dim[4];
+
     Config();
     ~Config();
-    void printHelp(bool bInitSuccess);
+    void generateRandNum(int size, float* buf);
     bool parseArguments(int argc, char** argv);
     void checkFileAndRead(float* buf, int bufsize, char* file);
     bool isCPUCompute() { return m_bCPUCompute; }
+    int  getDataSize()  { return m_dim[0] * m_dim[1] * m_dim[2] * m_dim[3]; }
 };

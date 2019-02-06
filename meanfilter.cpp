@@ -15,26 +15,26 @@ const float inputTensor[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
                              10, 11, 12, 13, 14, 15, 16, 17, 18, 19};
 
 Config::Config() {
-    m_bCPUCompute = false;
+    m_bCPUCompute   = false;
+    m_bPrintOut     = false;
+    m_dim[0]        = D1DIM;
+    m_dim[1]        = D2DIM;
+    m_dim[2]        = D3DIM;
+    m_dim[3]        = D4DIM;
 }
 
 Config::~Config() {
 
 }
 
-void Config::printHelp(bool bInitSuccess) {
-    printf("=================================================================\n");
-    if (!bInitSuccess){
-        printf("Usage: meanfilter \n");
-        printf("	-cpu [=> Use CPU] \n");
-    }
-    else{
-        printf(" [Execution Parameters]\n");
-        printf(" computing device: %s\n", m_bCPUCompute ? "CPU" : "GPU");
-    }
-    printf("=================================================================\n");
-    if (!bInitSuccess)
-        exit(-1);
+void Config::generateRandNum(int size, float* buf)
+{
+    float* ptr = buf;
+
+//    __PerfTimerStart__
+    for(int i=0; i < size; i++)
+        ptr[i] = (rand() % (1<<10));
+//    __PerfTimerEnd__
 }
 
 bool Config::parseArguments(int argc, char **argv) {
@@ -53,6 +53,50 @@ bool Config::parseArguments(int argc, char **argv) {
         if (strcasecmp(argv[i], "-cpu") == 0)
         {
             m_bCPUCompute = true;
+        }
+        else if (strcasecmp(argv[i], "-p") == 0)
+        {
+            m_bPrintOut = true;
+        }
+        else if (strcasecmp(argv[i], "-d1") == 0)
+        {
+            int data = 0;
+            if (++i >= argc || sscanf(argv[i], "%d", &data) != 1)
+            {
+                fprintf(stderr, "invalid parameter for %s\n", argv[i - 1]);
+                return false;
+            }
+            m_dim[0] = data;
+        }
+        else if (strcasecmp(argv[i], "-d2") == 0)
+        {
+            int data = 0;
+            if (++i >= argc || sscanf(argv[i], "%d", &data) != 1)
+            {
+                fprintf(stderr, "invalid parameter for %s\n", argv[i - 1]);
+                return false;
+            }
+            m_dim[1] = data;
+        }
+        else if (strcasecmp(argv[i], "-d3") == 0)
+        {
+            int data = 0;
+            if (++i >= argc || sscanf(argv[i], "%d", &data) != 1)
+            {
+                fprintf(stderr, "invalid parameter for %s\n", argv[i - 1]);
+                return false;
+            }
+            m_dim[2] = data;
+        }
+        else if (strcasecmp(argv[i], "-d4") == 0)
+        {
+            int data = 0;
+            if (++i >= argc || sscanf(argv[i], "%d", &data) != 1)
+            {
+                fprintf(stderr, "invalid parameter for %s\n", argv[i - 1]);
+                return false;
+            }
+            m_dim[3] = data;
         }
         else
         {
@@ -87,23 +131,22 @@ void Config::checkFileAndRead(float* buf, int bufsize, char* file)
 
 int main(int argc, char* argv[])
 {
-    /*if(argc < 2) {
-        print_usage(argv);
-        return -1;
-    }*/
-
     auto pFilter = make_shared<Meanfilter4D>();
     auto pConfig = make_shared<Config>();
 
-    int inBufferSize = D1DIM * D2DIM * D3DIM * D4DIM;
+    pConfig->parseArguments(argc, argv);
+
+    int inBufferSize = pConfig->getDataSize();
     float* pInputBuffer = new float[inBufferSize];
     float* pOutputBuffer = new float[inBufferSize];
-    memcpy(pInputBuffer, inputTensor, sizeof(float)*D1DIM * D2DIM * D3DIM * D4DIM);
+    //memcpy(pInputBuffer, inputTensor, sizeof(float)* inBufferSize);
 
-    pConfig->parseArguments(argc, argv);
-    pFilter->init(D1DIM, D2DIM, D3DIM, D4DIM, pConfig->isCPUCompute());
+    pConfig->generateRandNum(inBufferSize, pInputBuffer);
+    pFilter->init(pConfig->m_dim[0], pConfig->m_dim[1], pConfig->m_dim[2], pConfig->m_dim[3],
+                  pConfig->isCPUCompute());
     pFilter->execute(pInputBuffer, pOutputBuffer);
-    pFilter->printOut(pOutputBuffer);
+    if(pConfig->m_bPrintOut)
+        pFilter->printOut(pOutputBuffer);
     pFilter->deinit();
 
     delete [] pInputBuffer;
@@ -111,3 +154,4 @@ int main(int argc, char* argv[])
     
     return 0;
 }
+
