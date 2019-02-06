@@ -8,6 +8,7 @@
 
 #include "ThreadManager.h"
 
+
 ThreadManager::ThreadManager(int numthread) {
     memset(&m_pid[0], 0, sizeof(pthread_t) * MAX_THREAD_NUM);
     memset(&m_bCond[0], true, sizeof(bool) * MAX_THREAD_NUM);
@@ -90,4 +91,29 @@ void ThreadManager::Deinit() {
 void ThreadManager::SetRunCond(int i, bool bCond) {
     if(i >= m_numThread) return;
     m_bCond[i] = bCond;
+}
+
+Barrier::Barrier()
+{
+}
+
+void Barrier::Init(size_t iCount) {
+    mThreshold  = iCount;
+    mCount      = iCount;
+    mGeneration = 0;
+}
+
+void Barrier::Wait() {
+    if(mThreshold <= 0 || mCount <= 0) return;
+
+    unique_lock<mutex> lLock{mMutex};
+    auto lGen = mGeneration;
+    if (!--mCount) {
+        mGeneration++;
+        mCount = mThreshold;
+        mCond.notify_all();
+    } else {
+        //cout << "My count is " << mCount << endl;
+        mCond.wait(lLock, [this, lGen] { return lGen != mGeneration; });
+    }
 }

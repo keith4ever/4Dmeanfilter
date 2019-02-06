@@ -1,0 +1,164 @@
+//
+// Created by keith on 2/6/19.
+//
+
+#include "Meanfilter4D.h"
+
+Meanfilter4D* gpInstance;
+
+void* meanFilteredTensorC(void* arg)
+{
+    int i, j;
+    i = *(int*)arg;
+
+    CalcMeanfilter4D filter(gpInstance->m_d1dim, gpInstance->m_d2dim,
+                            gpInstance->m_d3dim, gpInstance->m_d4dim);
+    filter.setBuffers(gpInstance->getInBuffer(), gpInstance->getOutBuffer(),
+                      gpInstance->getExpBuffer());
+
+    for(; i < gpInstance->m_d1dim; i += gpInstance->getNumThreads()) {
+        for (j = 0; j < gpInstance->m_d2dim; j++) {
+            filter.memcpyToExpBuf(i, j);
+        }
+    }
+
+    gpInstance->synchonizeThreads();
+
+    i = *(int*)arg;
+    for(; i < gpInstance->m_d1dim; i += gpInstance->getNumThreads()){
+        for(j = 0; j < gpInstance->m_d2dim; j++){
+            filter.computeMean(i, j);
+        }
+    }
+
+    return NULL;
+}
+
+Meanfilter4D::Meanfilter4D()
+{
+    m_pdInbuffer = NULL;
+    m_pdExpbuffer = NULL;
+    m_pdOutbuffer = NULL;
+}
+
+Meanfilter4D::~Meanfilter4D()
+{
+
+}
+
+cudaError_t Meanfilter4D::init(int d1, int d2, int d3, int d4, bool bCPU)
+{
+    if(d1 <= 0 || d2 <= 0|| d3 <= 0|| d4 <= 0)
+        return cudaErrorInvalidValue;
+
+    m_d1dim         = d1;
+    m_d2dim         = d2;
+    m_d3dim         = d3;
+    m_d4dim         = d4;
+
+    gpInstance      = this;
+    cout << "Input data dimensions: [" << m_d1dim << ", " << m_d2dim
+    << ", " << m_d3dim << ", " << m_d4dim << "]" << endl;
+
+    m_bCPUCompute = bCPU;
+    if(m_bCPUCompute) {
+        m_pdExpbuffer = new float[(d1 + 2) * (d2 + 2) * (d3 + 2) * (d4 + 2)];
+        memset(m_pdExpbuffer, 0, sizeof(float) * (d1 + 2) * (d2 + 2) * (d3 + 2) * (d4 + 2));
+        for (int i = 0; i < MAX_THREAD_NUM; i++) {
+            m_pThreadIdx[i] = new int;
+            *m_pThreadIdx[i] = i;
+        }
+    } else {
+        printCudaDevProp();
+        __cu(cudaMalloc((void **) &m_pdInbuffer, sizeof(float) * d1 * d2 * d3 * d4));
+        __cu(cudaMalloc((void **) &m_pdExpbuffer, sizeof(float) * (d1 + 2) * (d2 + 2) * (d3 + 2) * (d4 + 2)));
+        __cu(cudaMalloc((void **) &m_pdOutbuffer, sizeof(float) * d1 * d2 * d3 * d4));
+
+        __cu(cudaMemset(m_pdExpbuffer, 0, sizeof(float) * (d1 + 2) * (d2 + 2) * (d3 + 2) * (d4 + 2)));
+        __cu(cudaMemset(m_pdOutbuffer, 0, sizeof(float) * d1 * d2 * d3 * d4));
+        __cu(cudaMemset(m_pdInbuffer, 0, sizeof(float) * d1 * d2 * d3 * d4));
+
+        initVars_wrap(m_pdExpbuffer);
+    }
+    return cudaSuccess;
+}
+
+cudaError_t Meanfilter4D::deinit() {
+
+    if (m_bCPUCompute) {
+        delete[] m_pdExpbuffer;
+        m_pdInbuffer = NULL;
+        m_pdExpbuffer = NULL;
+        m_pdOutbuffer = NULL;
+        for (int i = 0; i < MAX_THREAD_NUM; i++) {
+            delete m_pThreadIdx[i];
+        }
+    } else {
+        SAFECUDADELETE(m_pdInbuffer);
+        SAFECUDADELETE(m_pdOutbuffer);
+        SAFECUDADELETE(m_pdExpbuffer);
+    }
+
+    return cudaSuccess;
+}
+
+cudaError_t Meanfilter4D::execute(float *inbuf, float *outbuf)
+{
+    __PerfTimerStart__
+
+    if(m_bCPUCompute) {
+        m_pdInbuffer = inbuf;
+        m_pdOutbuffer = outbuf;
+
+        m_numThreads = ((m_d1dim > MAX_THREAD_NUM)? MAX_THREAD_NUM : m_d1dim);
+        ThreadManager calcMeanThr(m_numThreads);
+        calcMeanThr.Init(meanFilteredTensorC, (void **) m_pThreadIdx);
+        m_barrier.Init(m_numThreads);
+        calcMeanThr.Run();
+        calcMeanThr.Join();
+    } else {
+        __cu(cudaMemcpy(m_pdInbuffer, inbuf, sizeof(float) * m_d1dim * m_d2dim * m_d3dim * m_d4dim,
+                        cudaMemcpyHostToDevice));
+
+        meanFilteredTensor_wrap(m_pdInbuffer, m_pdOutbuffer, m_d1dim, m_d2dim, m_d3dim, m_d4dim);
+
+        __cu(cudaMemcpy(outbuf, m_pdOutbuffer, sizeof(float) * m_d1dim * m_d2dim * m_d3dim * m_d4dim,
+                        cudaMemcpyDeviceToHost));
+    }
+    __PerfTimerEnd__
+
+    return cudaSuccess;
+}
+
+void Meanfilter4D::printOut(float *pOut) {
+    for(int i=0; i < m_d1dim; i++) {
+        for (int j = 0; j < m_d2dim; j++) {
+            for (int k = 0; k < m_d3dim; k++) {
+                cout << "[" << i << "," << j << "," << k << ",*] ";
+                for (int l = 0; l < m_d4dim; l++) {
+                    cout << pOut[i * m_d2dim * m_d3dim * m_d4dim + j * m_d3dim * m_d4dim + k * m_d4dim + l]
+                    << ", ";
+                }
+                cout << endl;
+            }
+        }
+    }
+}
+
+void Meanfilter4D::printCudaDevProp() {
+    int nDevices;
+
+    if (cudaGetDeviceCount(&nDevices) != cudaSuccess)
+        return;
+
+    printf("======================================\n");
+    for (int i = 0; i < nDevices; i++) {
+        cudaDeviceProp prop;
+        cudaGetDeviceProperties(&prop, i);
+        printf("CUDA Device Number: %d\n", i);
+        printf("  Device name: %s\n", prop.name);
+        printf("  Compute Capability: %d.%d\n", prop.major, prop.minor);
+        printf("  Memory Capacity: %ldMB\n", (prop.totalGlobalMem) >> 20);
+    }
+    printf("======================================\n");
+}

@@ -12,8 +12,11 @@
 #include <pthread.h>
 #include <memory.h>
 #include <semaphore.h>
+#include <iostream>
 #include <algorithm>
 #include <vector>
+#include <condition_variable>
+
 #define MAX_THREAD_NUM      16
 
 using namespace std;
@@ -41,5 +44,18 @@ public:
     bool isRunning(int idx);
 };
 
+class Barrier {
+public:
+    Barrier();
+    void Init(size_t iCount);
+    void Wait();
+
+private:
+    mutex mMutex;
+    condition_variable mCond;
+    size_t mThreshold;
+    size_t mCount;
+    size_t mGeneration;
+};
 
 #endif //MULTIPIP_THREADMANAGER_H

@@ -3,6 +3,8 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/CMakeLists.txt" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/Meanfilter4D.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/Meanfilter4D.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/ThreadManager.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/ThreadManager.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/build.cmake" isTestSource="false" />
@@ -16,10 +18,10 @@
     <orderEntry type="module-library">
       <library name="Header Search Paths">
         <CLASSES>
-          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/729c0e31/729c0e31/Debug" />
-          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/729c0e31/729c0e31/MinSizeRel" />
-          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/729c0e31/729c0e31/RelWithDebInfo" />
-          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/729c0e31/729c0e31/Release" />
+          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/c8720734/c8720734/Debug" />
+          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/c8720734/c8720734/MinSizeRel" />
+          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/c8720734/c8720734/RelWithDebInfo" />
+          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/c8720734/c8720734/Release" />
           <root url="file:///usr/include" />
           <root url="file:///usr/lib/gcc/x86_64-linux-gnu/7/include" />
           <root url="file:///usr/lib/gcc/x86_64-linux-gnu/7/include-fixed" />
@@ -29,10 +31,10 @@
           <root url="file:///usr/local/include" />
         </CLASSES>
         <SOURCES>
-          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/729c0e31/729c0e31/Debug" />
-          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/729c0e31/729c0e31/MinSizeRel" />
-          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/729c0e31/729c0e31/RelWithDebInfo" />
-          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/729c0e31/729c0e31/Release" />
+          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/c8720734/c8720734/Debug" />
+          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/c8720734/c8720734/MinSizeRel" />
+          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/c8720734/c8720734/RelWithDebInfo" />
+          <root url="file://$USER_HOME$/.CLion12/system/cmake/generated/c8720734/c8720734/Release" />
           <root url="file:///usr/include" />
           <root url="file:///usr/lib/gcc/x86_64-linux-gnu/7/include" />
           <root url="file:///usr/lib/gcc/x86_64-linux-gnu/7/include-fixed" />

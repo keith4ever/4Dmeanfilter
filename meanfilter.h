@@ -8,7 +8,6 @@
 
 #pragma once
 
-#include <chrono>
 #include <stdio.h>
 #include <iostream>
 #include <memory>
@@ -21,19 +20,6 @@
 #define D2DIM   16
 #define D3DIM   16
 #define D4DIM   16
-
-#define __PerfTimerStart__	auto startT = chrono::steady_clock::now();
-#define __PerfTimerEnd__	auto endT = chrono::steady_clock::now(); \
-	double elapsedSeconds = ((endT - startT).count()) * chrono::steady_clock::period::num \
-	/ static_cast<double>(chrono::steady_clock::period::den); \
-	cout << "Elapsed time: " << (elapsedSeconds*1000) << " msecs.." << endl;
-
-#define __cu(a) do { \
-    cudaError_t  ret; \
-    if ((ret = (a)) != cudaSuccess) { \
-        fprintf(stderr, "%s has returned CUDA error %d\n", #a, ret); \
-        return cudaErrorInvalidValue;\
-    }} while(0)
 
 using namespace std;
 

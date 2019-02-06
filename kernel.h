@@ -8,53 +8,49 @@
 
 #pragma once
 
+#include <chrono>
 #include <vector_types.h>
 #include <memory.h>
 #include <math.h>
 #include <iostream>
 #include <driver_types.h>
-#include "ThreadManager.h"
+#include <cuda_runtime.h>
+#include <cuda_device_runtime_api.h>
 
-#define SAFECUDADELETE(x)	if(x){ __cu(cudaFree(x)); x = NULL; }
+#define __PerfTimerStart__	auto startT = chrono::steady_clock::now();
+#define __PerfTimerEnd__	auto endT = chrono::steady_clock::now(); \
+	double elapsedSeconds = ((endT - startT).count()) * chrono::steady_clock::period::num \
+	/ static_cast<double>(chrono::steady_clock::period::den); \
+	cout << "Elapsed time: " << (elapsedSeconds*1000) << " msecs.." << endl;
 
-class Meanfilter4D
-{
+#define __cu(a) do { \
+    cudaError_t  ret; \
+    if ((ret = (a)) != cudaSuccess) { \
+        fprintf(stderr, "%s has returned CUDA error %d\n", #a, ret); \
+        return cudaErrorInvalidValue;\
+    }} while(0)
+
+#define MIN(a,b) (((a)<(b))?(a):(b))
+
+extern void initVars_wrap(float* expBuffer);
+extern void meanFilteredTensor_wrap(float* inputTensor, float* outputTensor,
+                                        int d1, int d2, int d3, int d4);
+
+class CalcMeanfilter4D{
 private:
-
-    float *m_pdInbuffer;
-    float *m_pdOutbuffer;
-    float *m_pdExpbuffer;
-
-    int* m_pThreadIdx[MAX_THREAD_NUM];
-    bool m_bCPUCompute;
-public:
-    Meanfilter4D();
-    ~Meanfilter4D();
-    cudaError_t init(int d1, int d2, int d3, int d4, bool bCPU);
-    cudaError_t deinit();
-    float* getInBuffer()    { return m_pdInbuffer; }
-    float* getOutBuffer()   { return m_pdOutbuffer; }
-    float* getExpBuffer()   { return m_pdExpbuffer; }
-
-    cudaError_t execute(float *inbuf, float *outbuf);
-    void printCudaDevProp();
-    void printOut(float *pOut);
-    void calcMidCells(int i, int j, int k, int l);
-
-    template<typename T>
-    void compare(T* dst, T* src, int size,
-                 const char* title = "[Comparison Result] "){
-        int mismatch = 0, temp = 0;
-        for (int i = 0; i < size; i++) {
-            if (dst[i] != src[i])
-                mismatch++;
-        }
-        std::cout << title << mismatch << std::endl;
-    }
-
     int m_d1dim;	// 128
     int m_d2dim;	// 128
     int m_d3dim;	// 128
     int m_d4dim;	// 128
 
+    float *m_pdInbuffer;
+    float *m_pdOutbuffer;
+    float *m_pdExpbuffer;
+
+public:
+    __host__ __device__ CalcMeanfilter4D(int d1, int d2, int d3, int d4);
+    __host__ __device__ void setBuffers(float *pIn, float *pOut, float* pExp);
+    __host__ __device__ void computeMean(int i, int j);
+    __host__ __device__ void memcpyToExpBuf(int idxX, int idxY);
+    __host__ __device__ int  boundCheck(int idx, int dim);
 };

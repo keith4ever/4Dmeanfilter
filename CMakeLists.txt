@@ -38,6 +38,7 @@ file( GLOB CUDA_SRC_FILES kernel.cu)
 set(MEANFILTER_FILES
         ThreadManager.cpp
         meanfilter.cpp
+        Meanfilter4D.cpp
 )
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL Linux)
