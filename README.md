@@ -27,7 +27,7 @@ CUDA Device Number: 0
 ======================================
 Elapsed time: 345.155 msecs..
 
-./meanfilter -d1 256 -d2 128 -d3 64 -d4 64 -cpu
-Input data dimensions: [256, 128, 64, 64]
-Elapsed time: 4890.56 msecs..
+./meanfilter -d1 128 -d2 128 -d3 64 -d4 64 -cpu
+Input data dimensions: [128, 128, 64, 64]
+Elapsed time: 2452.04 msecs..
 ```
