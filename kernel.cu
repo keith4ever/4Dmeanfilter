@@ -54,7 +54,7 @@ __global__ void meanFilteredTensor(float* inputTensor, float* outputTensor,
     // setting expanded dimension values
     ed2 = d2+2; ed3 = d3+2; ed4 = d4+2;
 
-    int div;
+    int div, divxy, divk;
 
     // first copy into expanded memory
     float *pIn, *pExp, *pBase;
@@ -73,10 +73,11 @@ __global__ void meanFilteredTensor(float* inputTensor, float* outputTensor,
     __syncthreads();
 
     // now compute 4D Tensor mean filter
+    divxy = boundCheckCUDA(idxX, d1) * boundCheckCUDA(idxY, d2);
     for(k = 0; k < d3; k++){
+        divk = boundCheckCUDA(k, d3);
         for(l = 0; l < d4; l++) {
-            div = boundCheckCUDA(idxX, d1) * boundCheckCUDA(idxY, d2)
-                  * boundCheckCUDA(k, d3) * boundCheckCUDA(l, d4); // 1 to 81
+            div = divxy * divk * boundCheckCUDA(l, d4); // 1 to 81
             for (wi = 0; wi < 3; wi++){
                 pBase   =  &d_expTensor[(idxX+wi)*ed2*ed3*ed4 + idxY*ed3*ed4];
                 tempsum += pBase[k*ed4     + l];
