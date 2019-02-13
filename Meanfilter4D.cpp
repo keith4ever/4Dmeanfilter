@@ -12,7 +12,7 @@ Meanfilter4D* gpInstance;
 
 void* meanFilteredTensorC(void* arg)
 {
-    int i, j;
+    int i, j, k;
     i = *(int*)arg;
 
     CalcMeanfilter4D filter(gpInstance->m_d1dim, gpInstance->m_d2dim,
@@ -22,7 +22,8 @@ void* meanFilteredTensorC(void* arg)
 
     for(; i < gpInstance->m_d1dim; i += gpInstance->getNumThreads()) {
         for (j = 0; j < gpInstance->m_d2dim; j++) {
-            filter.memcpyToExpBuf(i, j);
+            for (k = 0; k < gpInstance->m_d3dim; k++)
+                filter.memcpyToExpBuf(i, j, k);
         }
     }
 
@@ -31,7 +32,8 @@ void* meanFilteredTensorC(void* arg)
     i = *(int*)arg;
     for(; i < gpInstance->m_d1dim; i += gpInstance->getNumThreads()){
         for(j = 0; j < gpInstance->m_d2dim; j++){
-            filter.computeMean(i, j);
+            for (k = 0; k < gpInstance->m_d3dim; k++)
+                filter.computeMean(i, j, k);
         }
     }
 

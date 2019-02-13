@@ -24,74 +24,16 @@ __global__ void meanFilteredTensor(float* inputTensor, float* outputTensor,
                                    int d1, int d2, int d3, int d4) {
     int idxX = threadIdx.x + blockIdx.x * blockDim.x;
     int idxY = threadIdx.y + blockIdx.y * blockDim.y;
-    if (idxX >= d1|| idxY >= d2 || d_expTensor == NULL) return;
+    int idxZ = threadIdx.z + blockIdx.z * blockDim.z;
+    if (idxX >= d1|| idxY >= d2 || idxZ >= d3|| d_expTensor == NULL) return;
 
     CalcMeanfilter4D filter(d1, d2, d3, d4);
     filter.setBuffers(inputTensor, outputTensor, d_expTensor);
-    filter.memcpyToExpBuf(idxX, idxY);
+    filter.memcpyToExpBuf(idxX, idxY, idxZ);
     // wait until all mem copy is done
     __syncthreads();
 
-#if     1
-    int wi;
-    int ed2, ed3, ed4;
-    int div, divxy, divk;
-    int k, l;
-    float tempsum = 0.0f;
-    float* pBase;
-    ed2 = d2 + 2;
-    ed3 = d3 + 2;
-    ed4 = d4 + 2;
-
-    // now compute 4D Tensor mean filter
-    divxy = filter.boundCheck(idxX, d1) * filter.boundCheck(idxY, d2);
-    for(k = 0; k < d3; k++){
-        divk = filter.boundCheck(k, d3);
-        for(l = 0; l < d4; l++) {
-            div = divxy * divk * filter.boundCheck(l, d4); // 1 to 81
-            for (wi = 0; wi < 3; wi++){
-                pBase   =  &d_expTensor[(idxX+wi)*ed2*ed3*ed4 + idxY*ed3*ed4];
-                tempsum += pBase[k*ed4     + l];
-                tempsum += pBase[k*ed4     + l+1];
-                tempsum += pBase[k*ed4     + l+2];
-                tempsum += pBase[(k+1)*ed4 + l];
-                tempsum += pBase[(k+1)*ed4 + l+1];
-                tempsum += pBase[(k+1)*ed4 + l+2];
-                tempsum += pBase[(k+2)*ed4 + l];
-                tempsum += pBase[(k+2)*ed4 + l+1];
-                tempsum += pBase[(k+2)*ed4 + l+2];
-
-                pBase   += ed3*ed4;
-                tempsum += pBase[k*ed4     + l];
-                tempsum += pBase[k*ed4     + l+1];
-                tempsum += pBase[k*ed4     + l+2];
-                tempsum += pBase[(k+1)*ed4 + l];
-                tempsum += pBase[(k+1)*ed4 + l+1];
-                tempsum += pBase[(k+1)*ed4 + l+2];
-                tempsum += pBase[(k+2)*ed4 + l];
-                tempsum += pBase[(k+2)*ed4 + l+1];
-                tempsum += pBase[(k+2)*ed4 + l+2];
-
-                pBase   += ed3*ed4;
-                tempsum += pBase[k*ed4     + l];
-                tempsum += pBase[k*ed4     + l+1];
-                tempsum += pBase[k*ed4     + l+2];
-                tempsum += pBase[(k+1)*ed4 + l];
-                tempsum += pBase[(k+1)*ed4 + l+1];
-                tempsum += pBase[(k+1)*ed4 + l+2];
-                tempsum += pBase[(k+2)*ed4 + l];
-                tempsum += pBase[(k+2)*ed4 + l+1];
-                tempsum += pBase[(k+2)*ed4 + l+2];
-            }
-            outputTensor[idxX*d2*d3*d4 + idxY*d3*d4 + k*d4 + l]
-                    = ((div <= 0)? 0 : (tempsum / div));
-            //printf("[%d,%d] sum: %f, div: %d\n", idxX, idxY, tempsum, div);
-            tempsum = 0;
-        }
-    }
-#else
-    filter.computeMean(idxX, idxY);
-#endif
+    filter.computeMean(idxX, idxY, idxZ);
 }
 
 void initVars_wrap(float* expBuffer){
@@ -100,9 +42,10 @@ void initVars_wrap(float* expBuffer){
 
 void meanFilteredTensor_wrap(float* inputTensor, float* outputTensor,
                                    int d1, int d2, int d3, int d4) {
-    dim3 threads(MIN(d1, 32), MIN(d2, 32));
+    dim3 threads(MIN(d1, 32), MIN(d2, 32), MIN(d3, 32));
     dim3 grid((int) (d1 + (threads.x - 1)) / threads.x,
-              (int) (d2 + (threads.y - 1)) / threads.y);
+              (int) (d2 + (threads.y - 1)) / threads.y,
+              (int) (d3 + (threads.z - 1)) / threads.z);
 
     meanFilteredTensor <<< grid, threads >>> (inputTensor, outputTensor, d1, d2, d3, d4);
     cudaDeviceSynchronize();
@@ -140,36 +83,29 @@ __host__ __device__ void CalcMeanfilter4D::setBuffers(float *pIn, float *pOut, f
 }
 
 
-__host__ __device__ void CalcMeanfilter4D::memcpyToExpBuf(int idxX, int idxY)
+__host__ __device__ void CalcMeanfilter4D::memcpyToExpBuf(int idxX, int idxY, int idxZ)
 {
     float *pIn, *pExp, *pdst, *psrc;
     int ed2, ed3, ed4;
-    size_t i = 0, k;
+    size_t i = 0;
     ed2 = m_d2dim + 2;
     ed3 = m_d3dim + 2;
     ed4 = m_d4dim + 2;
 
     // copying raw source data into expanded (+2 for each dimension, to handle boundary data)
-    pIn = &m_pdInbuffer[idxX*m_d2dim*m_d3dim*m_d4dim + idxY*m_d3dim * m_d4dim];
-    pExp = &m_pdExpbuffer[(idxX+1)*ed2*ed3*ed4 + (idxY+1)*ed3*ed4 + ed4 + 1];
-    for (k = 0; k < m_d3dim; k++) {
-        /* pIn = &inputTensor[idxX*d2*d3*d4 + idxY*d3*d4 + k*d4];
-        pExp = &d_expTensor[(idxX+1)*ed2*ed3*ed4 + (idxY+1)*ed3*ed4 + (k+1)*ed4 + 1]; */
-        i = 0;
-        pdst = pExp;    psrc = pIn;
-        while(i++ < m_d4dim){
-            *pdst++ = *psrc++;
-        }
-        pIn += m_d4dim;
-        pExp += ed4;
+    pIn = &m_pdInbuffer[idxX*m_d2dim*m_d3dim*m_d4dim + idxY*m_d3dim*m_d4dim + idxZ*m_d4dim];
+    pExp = &m_pdExpbuffer[(idxX+1)*ed2*ed3*ed4 + (idxY+1)*ed3*ed4 + (idxZ+1)*ed4 + 1];
+    pdst = pExp;    psrc = pIn;
+    while(i++ < m_d4dim){
+        *pdst++ = *psrc++;
     }
 }
 
-__host__ __device__ void CalcMeanfilter4D::computeMean(int idxX, int idxY) {
+__host__ __device__ void CalcMeanfilter4D::computeMean(int idxX, int idxY, int idxZ) {
     int wi, ed2, ed3, ed4;
-    int div, divxy, divk;
-    int k, l;
-    float tempsum = 0.0f;
+    int div, divxyz;
+    int l;
+    float sum1 = 0.0f, sum2 = 0.0f, sum3 = 0.0f;
     float* pBase;
 
     ed2 = m_d2dim + 2;
@@ -177,49 +113,46 @@ __host__ __device__ void CalcMeanfilter4D::computeMean(int idxX, int idxY) {
     ed4 = m_d4dim + 2;
 
     // now compute 4D Tensor mean filter
-    divxy = boundCheck(idxX, m_d1dim) * boundCheck(idxY, m_d2dim);
-    for(k = 0; k < m_d3dim; k++){
-        divk = boundCheck(k, m_d3dim);
-        for(l = 0; l < m_d4dim; l++) {
-            div = divxy * divk * boundCheck(l, m_d4dim); // 1 to 81
-            for (wi = 0; wi < 3; wi++){
-                pBase   =  &m_pdExpbuffer[(idxX+wi)*ed2*ed3*ed4 + idxY*ed3*ed4];
-                tempsum += pBase[k*ed4     + l];
-                tempsum += pBase[k*ed4     + l+1];
-                tempsum += pBase[k*ed4     + l+2];
-                tempsum += pBase[(k+1)*ed4 + l];
-                tempsum += pBase[(k+1)*ed4 + l+1];
-                tempsum += pBase[(k+1)*ed4 + l+2];
-                tempsum += pBase[(k+2)*ed4 + l];
-                tempsum += pBase[(k+2)*ed4 + l+1];
-                tempsum += pBase[(k+2)*ed4 + l+2];
+    divxyz = boundCheck(idxX, m_d1dim) * boundCheck(idxY, m_d2dim) * boundCheck(idxZ, m_d3dim);
+    for(l = 0; l < m_d4dim; l++) {
+        div = divxyz * boundCheck(l, m_d4dim); // 1 to 81
+        for (wi = 0; wi < 3; wi++){
+            pBase   =  &m_pdExpbuffer[(idxX+wi)*ed2*ed3*ed4 + idxY*ed3*ed4 + idxZ*ed4];
+            sum1 += pBase[l];
+            sum2 += pBase[l+1];
+            sum3 += pBase[l+2];
+            sum1 += pBase[ed4 + l];
+            sum2 += pBase[ed4 + l+1];
+            sum3 += pBase[ed4 + l+2];
+            sum1 += pBase[2*ed4 + l];
+            sum2 += pBase[2*ed4 + l+1];
+            sum3 += pBase[2*ed4 + l+2];
 
-                pBase   += ed3*ed4;
-                tempsum += pBase[k*ed4     + l];
-                tempsum += pBase[k*ed4     + l+1];
-                tempsum += pBase[k*ed4     + l+2];
-                tempsum += pBase[(k+1)*ed4 + l];
-                tempsum += pBase[(k+1)*ed4 + l+1];
-                tempsum += pBase[(k+1)*ed4 + l+2];
-                tempsum += pBase[(k+2)*ed4 + l];
-                tempsum += pBase[(k+2)*ed4 + l+1];
-                tempsum += pBase[(k+2)*ed4 + l+2];
+            pBase   += ed3*ed4;
+            sum1 += pBase[l];
+            sum2 += pBase[l+1];
+            sum3 += pBase[l+2];
+            sum1 += pBase[ed4 + l];
+            sum2 += pBase[ed4 + l+1];
+            sum3 += pBase[ed4 + l+2];
+            sum1 += pBase[2*ed4 + l];
+            sum2 += pBase[2*ed4 + l+1];
+            sum3 += pBase[2*ed4 + l+2];
 
-                pBase   += ed3*ed4;
-                tempsum += pBase[k*ed4     + l];
-                tempsum += pBase[k*ed4     + l+1];
-                tempsum += pBase[k*ed4     + l+2];
-                tempsum += pBase[(k+1)*ed4 + l];
-                tempsum += pBase[(k+1)*ed4 + l+1];
-                tempsum += pBase[(k+1)*ed4 + l+2];
-                tempsum += pBase[(k+2)*ed4 + l];
-                tempsum += pBase[(k+2)*ed4 + l+1];
-                tempsum += pBase[(k+2)*ed4 + l+2];
-            }
-            m_pdOutbuffer[idxX*m_d2dim*m_d3dim*m_d4dim + idxY*m_d3dim*m_d4dim + k*m_d4dim + l]
-                    = ((div <= 0)? 0 : (tempsum / div));
-            //printf("[%d,%d] sum: %f, div: %d\n", idxX, idxY, tempsum, div);
-            tempsum = 0;
+            pBase   += ed3*ed4;
+            sum1 += pBase[l];
+            sum2 += pBase[l+1];
+            sum3 += pBase[l+2];
+            sum1 += pBase[ed4 + l];
+            sum2 += pBase[ed4 + l+1];
+            sum3 += pBase[ed4 + l+2];
+            sum1 += pBase[2*ed4 + l];
+            sum2 += pBase[2*ed4 + l+1];
+            sum3 += pBase[2*ed4 + l+2];
         }
+        m_pdOutbuffer[idxX*m_d2dim*m_d3dim*m_d4dim + idxY*m_d3dim*m_d4dim + idxZ*m_d4dim + l]
+                = ((div <= 0)? 0 : ((sum1 + sum2 + sum3) / div));
+        //printf("[%d,%d] sum: %f, div: %d\n", idxX, idxY, tempsum, div);
+        sum1 = sum2 = sum3 = 0.0f;
     }
 }

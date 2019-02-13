@@ -16,6 +16,7 @@
 #include <driver_types.h>
 #include <cuda_runtime.h>
 #include <cuda_device_runtime_api.h>
+#include "clionCudaParse.h"
 
 #define __PerfTimerStart__	auto startT = chrono::steady_clock::now();
 #define __PerfTimerEnd__	auto endT = chrono::steady_clock::now(); \
@@ -50,7 +51,7 @@ private:
 public:
     __host__ __device__ CalcMeanfilter4D(int d1, int d2, int d3, int d4);
     __host__ __device__ void setBuffers(float *pIn, float *pOut, float* pExp);
-    __host__ __device__ void computeMean(int i, int j);
-    __host__ __device__ void memcpyToExpBuf(int idxX, int idxY);
+    __host__ __device__ void computeMean(int i, int j, int k);
+    __host__ __device__ void memcpyToExpBuf(int idxX, int idxY, int idxZ);
     __host__ __device__ int  boundCheck(int idx, int dim);
 };
