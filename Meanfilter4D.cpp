@@ -108,7 +108,7 @@ cudaError_t Meanfilter4D::deinit() {
     return cudaSuccess;
 }
 
-cudaError_t Meanfilter4D::execute(float *inbuf, float *outbuf, int streamUnit)
+cudaError_t Meanfilter4D::execute(float *inbuf, float *outbuf)
 {
     __PerfTimerStart__
 
@@ -123,8 +123,13 @@ cudaError_t Meanfilter4D::execute(float *inbuf, float *outbuf, int streamUnit)
         calcMeanThr.Run();
         calcMeanThr.Join();
     } else {
-        meanFilteredTensor_wrap(inbuf, m_pdInbuffer, outbuf, m_pdOutbuffer,
-                                streamUnit, m_d1dim, m_d2dim, m_d3dim, m_d4dim);
+        __cu(cudaMemcpy(m_pdInbuffer, inbuf, sizeof(float) * m_d1dim * m_d2dim * m_d3dim * m_d4dim,
+                        cudaMemcpyHostToDevice));
+
+        meanFilteredTensor_wrap(m_pdInbuffer, m_pdOutbuffer, m_d1dim, m_d2dim, m_d3dim, m_d4dim);
+
+        __cu(cudaMemcpy(outbuf, m_pdOutbuffer, sizeof(float) * m_d1dim * m_d2dim * m_d3dim * m_d4dim,
+                        cudaMemcpyDeviceToHost));
     }
     __PerfTimerEnd__
 

@@ -139,19 +139,16 @@ int main(int argc, char* argv[]) {
     int inBufferSize = pConfig->getDataSize();
     float *pInputBuffer = new float[inBufferSize];
     float *pOutputBuffer = new float[inBufferSize];
-    int streamUnit;
 
     if (pConfig->m_bDefaultDim) {
-        streamUnit = 2;
         memcpy(pInputBuffer, inputTensor, sizeof(float) * inBufferSize);
     } else {
-        streamUnit = 8;
         pConfig->generateRandNum(inBufferSize, pInputBuffer);
     }
 
     pFilter->init(pConfig->m_dim[0], pConfig->m_dim[1], pConfig->m_dim[2], pConfig->m_dim[3],
                   pConfig->isCPUCompute());
-    pFilter->execute(pInputBuffer, pOutputBuffer, streamUnit);
+    pFilter->execute(pInputBuffer, pOutputBuffer);
     if(pConfig->m_bPrintOut)
         pFilter->printOut(pOutputBuffer);
     pFilter->deinit();

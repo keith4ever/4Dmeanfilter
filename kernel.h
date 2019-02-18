@@ -34,10 +34,8 @@
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
 extern void initVars_wrap(float* expBuffer);
-extern void meanFilteredTensor_wrap(float* hinputTensor, float* dinputTensor,
-                                    float* houtputTensor, float* doutputTensor,
-                                    int streamUnit, int d1, int d2, int d3, int d4);
-
+extern void meanFilteredTensor_wrap(float* inputTensor, float* outputTensor,
+                                    int d1, int d2, int d3, int d4);
 class CalcMeanfilter4D{
 private:
     int m_d1dim;	// 128

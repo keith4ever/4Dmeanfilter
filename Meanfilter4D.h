@@ -42,7 +42,7 @@ public:
     float*  getExpBuffer()   { return m_pdExpbuffer; }
     int     getNumThreads()  { return m_numThreads; }
 
-    cudaError_t execute(float *inbuf, float *outbuf, int streamUnit);
+    cudaError_t execute(float *inbuf, float *outbuf);
     void printCudaDevProp();
     void printOut(float *pOut);
     void synchonizeThreads()    { return m_barrier.Wait(); }
