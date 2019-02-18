@@ -108,7 +108,7 @@ cudaError_t Meanfilter4D::deinit() {
     return cudaSuccess;
 }
 
-cudaError_t Meanfilter4D::execute(float *inbuf, float *outbuf)
+cudaError_t Meanfilter4D::execute(float *inbuf, float *outbuf, int streamUnit)
 {
     __PerfTimerStart__
 
@@ -123,13 +123,8 @@ cudaError_t Meanfilter4D::execute(float *inbuf, float *outbuf)
         calcMeanThr.Run();
         calcMeanThr.Join();
     } else {
-        __cu(cudaMemcpy(m_pdInbuffer, inbuf, sizeof(float) * m_d1dim * m_d2dim * m_d3dim * m_d4dim,
-                        cudaMemcpyHostToDevice));
-
-        meanFilteredTensor_wrap(m_pdInbuffer, m_pdOutbuffer, m_d1dim, m_d2dim, m_d3dim, m_d4dim);
-
-        __cu(cudaMemcpy(outbuf, m_pdOutbuffer, sizeof(float) * m_d1dim * m_d2dim * m_d3dim * m_d4dim,
-                        cudaMemcpyDeviceToHost));
+        meanFilteredTensor_wrap(inbuf, m_pdInbuffer, outbuf, m_pdOutbuffer,
+                                streamUnit, m_d1dim, m_d2dim, m_d3dim, m_d4dim);
     }
     __PerfTimerEnd__
 
@@ -163,6 +158,8 @@ void Meanfilter4D::printCudaDevProp() {
         cudaGetDeviceProperties(&prop, i);
         printf("CUDA Device Number: %d\n", i);
         printf("  Device name: %s\n", prop.name);
+        printf("  CUDA cores: %d\n", prop.multiProcessorCount * 128);
+        printf("  Capable of Concurrent memcpy & execution: %d\n", prop.asyncEngineCount);
         printf("  Compute Capability: %d.%d\n", prop.major, prop.minor);
         printf("  Memory Capacity: %ldMB\n", (prop.totalGlobalMem) >> 20);
     }

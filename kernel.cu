@@ -40,15 +40,43 @@ void initVars_wrap(float* expBuffer){
     initVars <<< 1, 1 >>> (expBuffer);
 }
 
-void meanFilteredTensor_wrap(float* inputTensor, float* outputTensor,
-                                   int d1, int d2, int d3, int d4) {
-    dim3 threads(MIN(d1, 32), MIN(d2, 32), MIN(d3, 32));
-    dim3 grid((int) (d1 + (threads.x - 1)) / threads.x,
+void meanFilteredTensor_wrap(float* hinputTensor, float* dinputTensor,
+                             float* houtputTensor, float* doutputTensor,
+                             int streamUnit, int d1, int d2, int d3, int d4)
+{
+    int nStreams = (d1 + streamUnit -1)/streamUnit;
+    cudaStream_t streams[nStreams];
+    float *pdst, *psrc;
+
+    dim3 threads(streamUnit, MIN(d2, 32), MIN(d3, 32));
+    dim3 grid(streamUnit,
               (int) (d2 + (threads.y - 1)) / threads.y,
               (int) (d3 + (threads.z - 1)) / threads.z);
 
-    meanFilteredTensor <<< grid, threads >>> (inputTensor, outputTensor, d1, d2, d3, d4);
+    for(int i = 0; i < nStreams; i++) {
+        cudaStreamCreate(&streams[i]);
+        pdst = &dinputTensor[i * streamUnit * d2 * d3 * d4];
+        psrc = &hinputTensor[i * streamUnit * d2 * d3 * d4];
+        cudaMemcpyAsync(pdst, psrc, sizeof(float) * streamUnit * d2 * d3 * d4,
+                             cudaMemcpyHostToDevice, streams[i]);
+    }
+
+    for(int i = 0; i < nStreams; i++) {
+        pdst = &dinputTensor[i * streamUnit * d2 * d3 * d4];
+        psrc = &doutputTensor[i * streamUnit * d2 * d3 * d4];
+        meanFilteredTensor <<< grid, threads, 0, streams[i] >>> (pdst, psrc, streamUnit, d2, d3, d4);
+    }
+
+    for(int i = 0; i < nStreams; i++) {
+        pdst = &houtputTensor[i * streamUnit * d2 * d3 * d4];
+        psrc = &doutputTensor[i * streamUnit * d2 * d3 * d4];
+        cudaMemcpyAsync(pdst, psrc, sizeof(float) * streamUnit * d2 * d3 * d4,
+                        cudaMemcpyDeviceToHost, streams[i]);
+    }
     cudaDeviceSynchronize();
+    for(int i = 0; i < nStreams; i++) {
+        cudaStreamDestroy(streams[i]);
+    }
 }
 
 __host__ __device__ CalcMeanfilter4D::CalcMeanfilter4D(int d1, int d2, int d3, int d4)

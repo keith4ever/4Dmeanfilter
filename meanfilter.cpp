@@ -17,6 +17,7 @@ const float inputTensor[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
 Config::Config() {
     m_bCPUCompute   = false;
     m_bPrintOut     = false;
+    m_bDefaultDim   = true;
     m_dim[0]        = D1DIM;
     m_dim[1]        = D2DIM;
     m_dim[2]        = D3DIM;
@@ -66,7 +67,7 @@ bool Config::parseArguments(int argc, char **argv) {
                 fprintf(stderr, "invalid parameter for %s\n", argv[i - 1]);
                 return false;
             }
-            m_dim[0] = data;
+            m_dim[0] = data;    m_bDefaultDim = false;
         }
         else if (strcasecmp(argv[i], "-d2") == 0)
         {
@@ -76,7 +77,7 @@ bool Config::parseArguments(int argc, char **argv) {
                 fprintf(stderr, "invalid parameter for %s\n", argv[i - 1]);
                 return false;
             }
-            m_dim[1] = data;
+            m_dim[1] = data;    m_bDefaultDim = false;
         }
         else if (strcasecmp(argv[i], "-d3") == 0)
         {
@@ -86,7 +87,7 @@ bool Config::parseArguments(int argc, char **argv) {
                 fprintf(stderr, "invalid parameter for %s\n", argv[i - 1]);
                 return false;
             }
-            m_dim[2] = data;
+            m_dim[2] = data;    m_bDefaultDim = false;
         }
         else if (strcasecmp(argv[i], "-d4") == 0)
         {
@@ -96,7 +97,7 @@ bool Config::parseArguments(int argc, char **argv) {
                 fprintf(stderr, "invalid parameter for %s\n", argv[i - 1]);
                 return false;
             }
-            m_dim[3] = data;
+            m_dim[3] = data;    m_bDefaultDim = false;
         }
         else
         {
@@ -129,22 +130,28 @@ void Config::checkFileAndRead(float* buf, int bufsize, char* file)
     fclose(fp);
 }
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
     auto pFilter = make_shared<Meanfilter4D>();
     auto pConfig = make_shared<Config>();
 
     pConfig->parseArguments(argc, argv);
 
     int inBufferSize = pConfig->getDataSize();
-    float* pInputBuffer = new float[inBufferSize];
-    float* pOutputBuffer = new float[inBufferSize];
-    //memcpy(pInputBuffer, inputTensor, sizeof(float)* inBufferSize);
+    float *pInputBuffer = new float[inBufferSize];
+    float *pOutputBuffer = new float[inBufferSize];
+    int streamUnit;
 
-    pConfig->generateRandNum(inBufferSize, pInputBuffer);
+    if (pConfig->m_bDefaultDim) {
+        streamUnit = 2;
+        memcpy(pInputBuffer, inputTensor, sizeof(float) * inBufferSize);
+    } else {
+        streamUnit = 8;
+        pConfig->generateRandNum(inBufferSize, pInputBuffer);
+    }
+
     pFilter->init(pConfig->m_dim[0], pConfig->m_dim[1], pConfig->m_dim[2], pConfig->m_dim[3],
                   pConfig->isCPUCompute());
-    pFilter->execute(pInputBuffer, pOutputBuffer);
+    pFilter->execute(pInputBuffer, pOutputBuffer, streamUnit);
     if(pConfig->m_bPrintOut)
         pFilter->printOut(pOutputBuffer);
     pFilter->deinit();

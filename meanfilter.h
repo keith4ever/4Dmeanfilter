@@ -16,10 +16,10 @@
 #include <cuda.h>
 #include <stdlib.h>
 
-#define D1DIM   16
-#define D2DIM   16
-#define D3DIM   16
-#define D4DIM   16
+#define D1DIM   2
+#define D2DIM   2
+#define D3DIM   5
+#define D4DIM   2
 
 using namespace std;
 
@@ -30,6 +30,7 @@ private:
 public:
     bool m_bPrintOut;
     int  m_dim[4];
+    bool m_bDefaultDim;
 
     Config();
     ~Config();
