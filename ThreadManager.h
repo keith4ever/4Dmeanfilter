@@ -17,7 +17,7 @@
 #include <vector>
 #include <condition_variable>
 
-#define MAX_THREAD_NUM      8
+#define MAX_THREAD_NUM      12
 
 using namespace std;
 

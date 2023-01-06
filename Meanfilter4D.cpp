@@ -110,9 +110,9 @@ cudaError_t Meanfilter4D::deinit() {
 
 cudaError_t Meanfilter4D::execute(float *inbuf, float *outbuf)
 {
-    __PerfTimerStart__
 
     if(m_bCPUCompute) {
+        __PerfTimerStart__
         m_pdInbuffer = inbuf;
         m_pdOutbuffer = outbuf;
 
@@ -122,16 +122,18 @@ cudaError_t Meanfilter4D::execute(float *inbuf, float *outbuf)
         m_barrier.Init(m_numThreads);
         calcMeanThr.Run();
         calcMeanThr.Join();
+        __PerfTimerEnd__
     } else {
         __cu(cudaMemcpy(m_pdInbuffer, inbuf, sizeof(float) * m_d1dim * m_d2dim * m_d3dim * m_d4dim,
                         cudaMemcpyHostToDevice));
+        __PerfTimerStart__
 
         meanFilteredTensor_wrap(m_pdInbuffer, m_pdOutbuffer, m_d1dim, m_d2dim, m_d3dim, m_d4dim);
 
+        __PerfTimerEnd__
         __cu(cudaMemcpy(outbuf, m_pdOutbuffer, sizeof(float) * m_d1dim * m_d2dim * m_d3dim * m_d4dim,
                         cudaMemcpyDeviceToHost));
     }
-    __PerfTimerEnd__
 
     return cudaSuccess;
 }

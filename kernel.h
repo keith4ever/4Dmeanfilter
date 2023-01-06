@@ -16,7 +16,7 @@
 #include <driver_types.h>
 #include <cuda_runtime.h>
 #include <cuda_device_runtime_api.h>
-#include "clionCudaParse.h"
+#include <nvtx3/nvToolsExt.h>
 
 #define __PerfTimerStart__	auto startT = chrono::steady_clock::now();
 #define __PerfTimerEnd__	auto endT = chrono::steady_clock::now(); \

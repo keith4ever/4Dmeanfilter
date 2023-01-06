@@ -24,6 +24,7 @@ include_directories(
         ${APP_INC_PATH}
         ${CUDA_INCS}
         ${PROJECT_BINARY_DIR}
+        /usr/local/cuda/targets/x86_64-linux/include
 )
 
 link_directories(
